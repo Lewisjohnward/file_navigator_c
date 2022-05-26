@@ -166,9 +166,6 @@ int main (void)
     while((c = getchar()) != EOF)
     {
         clear();
-        printf("----------------\n");
-        printf("%s\n", cwd);
-        printf("----------------\n");
         if(c == 'h')
         {
             user_position = 1;
@@ -190,6 +187,9 @@ int main (void)
         {
             user_position--;
         }
+        printf("----------------\n");
+        printf("%s\n", cwd);
+        printf("----------------\n");
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir);
     }
 
