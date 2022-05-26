@@ -18,8 +18,35 @@ void enable_raw_mode()
     raw.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
+char *get_current_highlighted_file(char path[], int *user_position, char highlighted_name[], int *current_highlighted_file_is_dir)
+{
+    DIR *d;
+    struct dirent *dir;
+    int i = 0;
+    d = opendir(path);
+    while ((dir = readdir(d)) != NULL)
+    {
+        if((strcmp(dir->d_name, ".")))
+        {
+            if((strcmp(dir->d_name, "..")))
+            {
+                i++;
+                if(i == *user_position)
+                {
+                    if(dir->d_type == 4)
+                        *current_highlighted_file_is_dir = 1;
+                    else
+                        *current_highlighted_file_is_dir = 0;
 
-void print_current_dir(char path[], int *user_position)
+                    strcpy(highlighted_name, dir->d_name);
+                }
+            }
+        }
+    }
+
+}
+
+void print_current_dir(char path[], int *user_position, char full_path[], char highlighted_name[], int *current_highlighted_file_is_dir)
 {
     DIR *d;
     struct dirent *dir;
@@ -46,6 +73,10 @@ void print_current_dir(char path[], int *user_position)
         *user_position = user_position_upper_bound;
     if(*user_position < user_position_lower_bound)
         *user_position = user_position_lower_bound;
+    get_current_highlighted_file(path, user_position, highlighted_name, current_highlighted_file_is_dir);
+    strcpy(full_path, path);
+    strcat(full_path, "/");
+    strcat(full_path, highlighted_name);
     while ((dir = readdir(d)) != NULL)
     {
         if((strcmp(dir->d_name, ".")))
@@ -62,12 +93,16 @@ void print_current_dir(char path[], int *user_position)
 
 
                 if(i == *user_position)
+                {
                     printf("\033[0;31m");
+
+                }
                 else 
                     printf("\033[0m");
 
                 if(dir->d_type == 4)
-                        printf("\033[44;44m");
+                    printf("\033[44;44m");
+
 
                 printf("%s\n", dir->d_name);
                 printf("\033[0m");
@@ -114,53 +149,48 @@ char *go_up_dir(char *cwd)
 int main (void)
 {
     enable_raw_mode();
-    //char path[] = "/";
-    //char path2[] = ".";
     int user_position = 1;
     char cwd[PATH_MAX];
+    char full_path[PATH_MAX];
+    char highlighted_name[PATH_MAX];
+    int current_highlighted_file_is_dir = 1;
     char c;
 
     hide_cursor();
     clear();
-    printf("----------------\n");
     getcwd(cwd, sizeof(cwd));
-    printf("%s\n", cwd);
-    print_current_dir(cwd, &user_position);
     printf("----------------\n");
+    printf("%s\n", cwd);
+    printf("----------------\n");
+    print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir);
     while((c = getchar()) != EOF)
     {
+        clear();
+        printf("----------------\n");
+        printf("%s\n", cwd);
+        printf("----------------\n");
         if(c == 'h')
         {
-            user_position = 0;
-            clear();
+            user_position = 1;
             go_up_dir(cwd);
-            printf("----------------\n");
-            printf("%s\n", cwd);
-           // printf("%s\n", cwd);
-            print_current_dir(cwd, &user_position);
-            printf("----------------\n");
+        }
+        if(c == 'l')
+        {
+            if(current_highlighted_file_is_dir)
+            {
+                user_position = 1;
+                strcpy(cwd, full_path);
+            }
         }
         if(c == 'j')
         {
             user_position++;
-            clear();
-            printf("----------------\n");
-            printf("%s\n", cwd);
-           // printf("%s\n", cwd);
-            print_current_dir(cwd, &user_position);
-            printf("----------------\n");
         }
         if(c == 'k')
         {
             user_position--;
-            clear();
-            printf("----------------\n");
-            printf("%s\n", cwd);
-           // printf("%s\n", cwd);
-            print_current_dir(cwd, &user_position);
-            printf("----------------\n");
         }
-
+        print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir);
     }
 
 
