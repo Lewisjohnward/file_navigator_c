@@ -89,6 +89,11 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
     int user_position_upper_bound = 0;
     int user_position_lower_bound = 1;
     int file_count = 0;
+    clear();
+    center_vertically();
+    printf("\t----------------\n");
+    printf("\t%s\n", path);
+    printf("\t----------------\n");
     d = opendir(path);
     if (d == NULL)
     {
@@ -143,11 +148,11 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
                     {
                         //count_children_files(path, dir->d_name, &file_count);
                         printf("\033[44;44m");
-                        printf("%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
+                        printf("\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
                     }
                     else 
                     {
-                        printf("%-2d %s %-*s\n", i, ":", 45, dir->d_name);
+                        printf("\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
                     }
                         printf("\033[0m");
                     file_count = 0;
@@ -191,69 +196,113 @@ char *go_up_dir(char *cwd)
 
     return cwd;
 }
+void handle_command(char *path, char c, int *user_position, int *command_bar_active)
+{
+    const char *s = getenv("HOME");
+    switch(c)
+    {
+        case 'g':
+            *user_position = 0;
+            break;
+        case 'h':
+            strcpy(path, s);
+            break;
+        case '/':
+            strcpy(path, "/");
+            break;
+        case 'G':
+            *user_position = 100;
+            break;
+    }
+    *command_bar_active = 0;
+}
+
+void toggle_command_bar(int *command_bar_active)
+{
+    if(*command_bar_active)
+        *command_bar_active = 0;
+    else
+        *command_bar_active = 1;
+}
+
+void handle_input(char c, int *user_position, int current_highlighted_file_is_dir, char path[], char full_path[], int *command_bar_active)
+{
+    if(!*command_bar_active)
+    {
+        if(c == 'h')
+        {
+            *user_position = 1;
+            go_up_dir(path);
+        }
+        if(c == 'l' && current_highlighted_file_is_dir)
+        {
+            *user_position = 1;
+            strcpy(path, full_path);
+        }
+        if(c == 'j')
+        {
+            *user_position += 1;
+        }
+        if(c == 'k')
+        {
+            *user_position -= 1;
+        }
+        if(c == 'g')
+        {
+            toggle_command_bar(command_bar_active);
+        }
+    }
+    else
+    {
+        handle_command(path, c, user_position, command_bar_active);
+    }
+}
+
+void print_commands()
+{
+    center_vertically();
+    printf("g -> go to top");
+    printf("\n");
+    printf("G -> go to bottom");
+    printf("\n");
+    printf("h -> go to home dir");
+    printf("\n");
+    printf("/ -> go to root");
+    printf("\n");
+}
 
 int main (void)
 {
     enable_raw_mode();
+    hide_cursor();
+
     int user_position = 1;
     char cwd[PATH_MAX];
     char full_path[PATH_MAX];
     char highlighted_name[PATH_MAX];
+    char command_buffer[10];
+    command_buffer[10] = '\0';
     int current_highlighted_file_is_dir = 1;
     int min_visible_files = 0;
     int range_visible = 45;
+    int command_bar_active = 0;
 
     char c;
 
-    hide_cursor();
-    clear();
-    center_vertically();
     getcwd(cwd, sizeof(cwd));
-    printf("----------------\n");
-    printf("%s\n", cwd);
-    printf("----------------\n");
     print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible);
-    while((c = getchar()) != EOF)
+    while((c = getchar()) != EOF && c != 'q')
     {
         clear();
-        if(c == 'h')
-        {
-            user_position = 1;
-            go_up_dir(cwd);
-        }
-        if(c == 'l')
-        {
-            if(current_highlighted_file_is_dir)
-            {
-                user_position = 1;
-                strcpy(cwd, full_path);
-            }
-        }
-        if(c == 'j')
-        {
-            user_position++;
-        }
-        if(c == 'k')
-        {
-            user_position--;
-        }
-        if(c == 'g')
-        {
-            const char* s = getenv("HOME");
-            strcpy(cwd, s);
-        }
-        if(c == '/')
-        {
-            strcpy(cwd, "/");
-        }
-        center_vertically();
-        printf("----------------\n");
-        printf("%s\n", cwd);
-        printf("----------------\n");
+        handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active);
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible);
 
+        if(command_bar_active)
+            print_commands();
+        printf("\tc: %c\n", c);
+        printf("\tcommand bar: %d\n", command_bar_active);
+
     }
-
-
-
+    clear();
+    return 0;
 }
