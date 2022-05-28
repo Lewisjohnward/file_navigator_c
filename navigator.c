@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <dirent.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,10 +16,11 @@ void enable_raw_mode()
 {
     struct termios raw;
     tcgetattr(STDIN_FILENO, &raw);
-    raw.c_lflag &= ~(ECHO | ICANON);
+    raw.c_iflag &= ~(IXON);
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
-char *get_current_highlighted_file(char path[], int *user_position, char highlighted_name[], int *current_highlighted_file_is_dir)
+char *get_current_highlighted_file(char path[], int *user_position, char highlighted_name[], int *current_highlighted_file_is_dir, int show_hidden_files)
 {
     DIR *d;
     struct dirent *dir;
@@ -58,8 +60,6 @@ void count_children_files(char path[], char folder_name[], int *file_count)
     DIR *d;
     struct dirent *dir;
     int i = 0;
-//    printf("path: %s\n", path);
-//    printf("folder_name: %s\n", folder_name);
     char full_path[PATH_MAX];
     strcpy(full_path, path);
     strcat(full_path, "/");
@@ -81,7 +81,7 @@ void count_children_files(char path[], char folder_name[], int *file_count)
     }
 }
 
-void print_current_dir(char path[], int *user_position, char full_path[], char highlighted_name[], int *current_highlighted_file_is_dir, int *min_visible_files, int range_visible)
+void print_current_dir(char path[], int *user_position, char full_path[], char highlighted_name[], int *current_highlighted_file_is_dir, int *min_visible_files, int range_visible, int show_hidden_files)
 {
     DIR *d;
     struct dirent *dir;
@@ -114,7 +114,7 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
         *user_position = user_position_upper_bound;
     if(*user_position < user_position_lower_bound)
         *user_position = user_position_lower_bound;
-    get_current_highlighted_file(path, user_position, highlighted_name, current_highlighted_file_is_dir);
+    get_current_highlighted_file(path, user_position, highlighted_name, current_highlighted_file_is_dir, show_hidden_files);
     strcpy(full_path, path);
     strcat(full_path, "/");
     strcat(full_path, highlighted_name);
@@ -225,7 +225,15 @@ void toggle_command_bar(int *command_bar_active)
         *command_bar_active = 1;
 }
 
-void handle_input(char c, int *user_position, int current_highlighted_file_is_dir, char path[], char full_path[], int *command_bar_active)
+void toggle_hidden_files(int *show_hidden_files)
+{
+    if(*show_hidden_files)
+        *show_hidden_files = 0;
+    else
+        *show_hidden_files = 1;
+}
+
+void handle_input(char c, int *user_position, int current_highlighted_file_is_dir, char path[], char full_path[], int *command_bar_active, int *show_hidden_files)
 {
     if(!*command_bar_active)
     {
@@ -251,6 +259,8 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
         {
             toggle_command_bar(command_bar_active);
         }
+        if(c == 8)
+            toggle_hidden_files(show_hidden_files);
     }
     else
     {
@@ -258,7 +268,7 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
     }
 }
 
-void print_commands()
+void print_jump_commands()
 {
     center_vertically();
     printf("g -> go to top");
@@ -280,27 +290,26 @@ int main (void)
     char cwd[PATH_MAX];
     char full_path[PATH_MAX];
     char highlighted_name[PATH_MAX];
-    char command_buffer[10];
-    command_buffer[10] = '\0';
     int current_highlighted_file_is_dir = 1;
     int min_visible_files = 0;
     int range_visible = 45;
     int command_bar_active = 0;
+    int show_hidden_files = 0;
 
     char c;
 
     getcwd(cwd, sizeof(cwd));
-    print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible);
+    print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files);
     while((c = getchar()) != EOF && c != 'q')
     {
+        handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files);
         clear();
-        handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active);
-        print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible);
+        print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files);
 
         if(command_bar_active)
-            print_commands();
-        printf("\tc: %c\n", c);
-        printf("\tcommand bar: %d\n", command_bar_active);
+            print_jump_commands();
+
+        printf("show hidden files: %d\n", show_hidden_files);
 
     }
     clear();
