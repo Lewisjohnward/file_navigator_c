@@ -1,1 +1,2 @@
-# file_navigator_c
+# Navigator
+A file explorer in C
