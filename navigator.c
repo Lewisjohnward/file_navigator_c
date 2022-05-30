@@ -255,7 +255,7 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
         {
             *user_position -= 1;
         }
-        if(c == 'g')
+        if(c == 'g' || c == 'g')
         {
             toggle_command_bar(command_bar_active);
         }
@@ -279,6 +279,19 @@ void print_jump_commands()
     printf("\n");
     printf("/ -> go to root");
     printf("\n");
+}
+
+void print_commands(int command_bar_active)
+{
+    switch(command_bar_active)
+    {
+        case 1:
+            print_jump_commands();
+            break;
+        case 2:
+            print_jump_commands;
+            break;
+    }
 }
 
 int main (void)
@@ -305,11 +318,7 @@ int main (void)
         handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files);
         clear();
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files);
-
-        if(command_bar_active)
-            print_jump_commands();
-
-        printf("show hidden files: %d\n", show_hidden_files);
+        print_commands(command_bar_active);
 
     }
     clear();
