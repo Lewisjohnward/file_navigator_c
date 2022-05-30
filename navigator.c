@@ -48,10 +48,10 @@ char *get_current_highlighted_file(char path[], int *user_position, char highlig
 
 }
 
-void center_vertically()
+void center_vertically(int num)
 {
     int i;
-    for(i = 0; i < 5; i++)
+    for(i = 0; i < num; i++)
         printf("\n");
 }
 
@@ -90,7 +90,7 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
     int user_position_lower_bound = 1;
     int file_count = 0;
     clear();
-    center_vertically();
+    center_vertically(2);
     printf("\t----------------\n");
     printf("\t%s\n", path);
     printf("\t----------------\n");
@@ -196,7 +196,8 @@ char *go_up_dir(char *cwd)
 
     return cwd;
 }
-void handle_command(char *path, char c, int *user_position, int *command_bar_active)
+
+void handle_move_command(char *path, char c, int *user_position, int *command_bar_active)
 {
     const char *s = getenv("HOME");
     switch(c)
@@ -214,15 +215,50 @@ void handle_command(char *path, char c, int *user_position, int *command_bar_act
             *user_position = 100;
             break;
     }
+}
+
+void handle_create_file_command(char *path, char c, int *user_position, int *command_bar_active)
+{
+    const char *s = getenv("HOME");
+    switch(c)
+    {
+        case 'f':
+            *user_position = 0;
+            break;
+        case 'd':
+            strcpy(path, s);
+            break;
+    }
+}
+
+
+void handle_command(char *path, char c, int *user_position, int *command_bar_active)
+{
+    switch(*command_bar_active)
+    {
+        case 1:
+            handle_move_command(path, c, user_position, command_bar_active);
+            break;
+        case 2:
+            handle_create_file_command(path, c, user_position, command_bar_active);
+            break;
+    }
     *command_bar_active = 0;
 }
 
-void toggle_command_bar(int *command_bar_active)
+void toggle_command_bar(int *command_bar_active, char c)
 {
-    if(*command_bar_active)
-        *command_bar_active = 0;
-    else
-        *command_bar_active = 1;
+    switch(c)
+    {
+        case 'g':
+            *command_bar_active = 1;
+            break;
+        case 'c':
+            *command_bar_active = 2;
+            break;
+        default:
+            *command_bar_active = 0;
+    }
 }
 
 void toggle_hidden_files(int *show_hidden_files)
@@ -255,9 +291,9 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
         {
             *user_position -= 1;
         }
-        if(c == 'g' || c == 'g')
+        if(c == 'g' || c == 'c')
         {
-            toggle_command_bar(command_bar_active);
+            toggle_command_bar(command_bar_active, c);
         }
         if(c == 8)
             toggle_hidden_files(show_hidden_files);
@@ -270,7 +306,7 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
 
 void print_jump_commands()
 {
-    center_vertically();
+    center_vertically(2);
     printf("g -> go to top");
     printf("\n");
     printf("G -> go to bottom");
@@ -278,6 +314,15 @@ void print_jump_commands()
     printf("h -> go to home dir");
     printf("\n");
     printf("/ -> go to root");
+    printf("\n");
+}
+
+void print_create_file_commands()
+{
+    center_vertically(2);
+    printf("d -> Create new dir");
+    printf("\n");
+    printf("f -> Create new file");
     printf("\n");
 }
 
@@ -289,7 +334,7 @@ void print_commands(int command_bar_active)
             print_jump_commands();
             break;
         case 2:
-            print_jump_commands;
+            print_create_file_commands();
             break;
     }
 }
