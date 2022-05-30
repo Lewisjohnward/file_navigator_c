@@ -230,6 +230,16 @@ void make_dir(char *path, char *name)
     strcat(make_dir_buffer, name);
     mkdir(make_dir_buffer, 0777);
 }
+void make_file(char *path, char *name)
+{
+    FILE *fp;
+    char make_file_buffer[PATH_MAX];
+    strcpy(make_file_buffer, path);
+    strcat(make_file_buffer, "/");
+    strcat(make_file_buffer, name);
+    fp = fopen(make_file_buffer, "w");
+    fclose(fp);
+}
 
 void handle_create_file_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder)
 {
@@ -237,6 +247,8 @@ void handle_create_file_command(char *path, char c, int *user_position, int *com
     switch(c)
     {
         case 'f':
+            *create_new_folder = 2;
+            *accepting_user_input = 1;
             break;
         case 'd':
             *create_new_folder = 1;
@@ -244,6 +256,17 @@ void handle_create_file_command(char *path, char c, int *user_position, int *com
             break;
     }
 }
+//void handle_delete_file_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder)
+//{
+//    switch(c)
+//    {
+//        case 'd':
+//            *create_new_folder = 1;
+//            *accepting_user_input = 1;
+//            break;
+//    }
+//
+//}
 
 
 void handle_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder)
@@ -255,6 +278,9 @@ void handle_command(char *path, char c, int *user_position, int *command_bar_act
             break;
         case 2:
             handle_create_file_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder);
+            break;
+        case 3:
+            //handle_delete_file_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder);
             break;
     }
     *command_bar_active = 0;
@@ -269,6 +295,9 @@ void toggle_command_bar(int *command_bar_active, char c)
             break;
         case 'c':
             *command_bar_active = 2;
+            break;
+        case 'd':
+            *command_bar_active = 3;
             break;
         default:
             *command_bar_active = 0;
@@ -305,7 +334,7 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
         {
             *user_position -= 1;
         }
-        if(c == 'g' || c == 'c')
+        if(c == 'g' || c == 'c' || c == 'd' )
         {
             toggle_command_bar(command_bar_active, c);
         }
@@ -340,6 +369,14 @@ void print_create_file_commands()
     printf("\n");
 }
 
+void print_delete_file_commands()
+{
+    center_vertically(2);
+    printf("d -> delete file");
+    printf("\n");
+}
+
+
 void print_commands(int command_bar_active)
 {
     switch(command_bar_active)
@@ -349,6 +386,9 @@ void print_commands(int command_bar_active)
             break;
         case 2:
             print_create_file_commands();
+            break;
+        case 3:
+            print_delete_file_commands();
             break;
     }
 }
@@ -404,15 +444,18 @@ int main (void)
 
         if (handle_command)
         {
-            if(create_new_folder)
+            if(create_new_folder == 1)
             {
-                printf("lets make a new dir!\n");
                 make_dir(cwd, user_command);
-                create_new_folder = 0;
-                handle_command = 0;
-                user_command_position = 0;
-                user_command[0] = '\0';
             }
+            if(create_new_folder == 2)
+            {
+                make_file(cwd, user_command);
+            }
+            user_command_position = 0;
+            user_command[0] = '\0';
+            create_new_folder = 0;
+            handle_command = 0;
         }
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files, accepting_user_input, user_command);
         print_commands(command_bar_active);
