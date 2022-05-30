@@ -6,6 +6,8 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <linux/limits.h>
 #define clear() printf("\033[H\033[J")
 
@@ -81,7 +83,7 @@ void count_children_files(char path[], char folder_name[], int *file_count)
     }
 }
 
-void print_current_dir(char path[], int *user_position, char full_path[], char highlighted_name[], int *current_highlighted_file_is_dir, int *min_visible_files, int range_visible, int show_hidden_files)
+void print_current_dir(char path[], int *user_position, char full_path[], char highlighted_name[], int *current_highlighted_file_is_dir, int *min_visible_files, int range_visible, int show_hidden_files, int accepting_user_input, char *user_command)
 {
     DIR *d;
     struct dirent *dir;
@@ -160,6 +162,9 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
             }
         }
     }
+    if(accepting_user_input)
+        printf("%s\n", user_command);
+    
 }
 
 char *go_up_dir(char *cwd)
@@ -217,22 +222,31 @@ void handle_move_command(char *path, char c, int *user_position, int *command_ba
     }
 }
 
-void handle_create_file_command(char *path, char c, int *user_position, int *command_bar_active)
+void make_dir(char *path, char *name)
 {
-    const char *s = getenv("HOME");
+    char make_dir_buffer[PATH_MAX];
+    strcpy(make_dir_buffer, path);
+    strcat(make_dir_buffer, "/");
+    strcat(make_dir_buffer, name);
+    mkdir(make_dir_buffer, 0777);
+}
+
+void handle_create_file_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder)
+{
+    
     switch(c)
     {
         case 'f':
-            *user_position = 0;
             break;
         case 'd':
-            strcpy(path, s);
+            *create_new_folder = 1;
+            *accepting_user_input = 1;
             break;
     }
 }
 
 
-void handle_command(char *path, char c, int *user_position, int *command_bar_active)
+void handle_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder)
 {
     switch(*command_bar_active)
     {
@@ -240,7 +254,7 @@ void handle_command(char *path, char c, int *user_position, int *command_bar_act
             handle_move_command(path, c, user_position, command_bar_active);
             break;
         case 2:
-            handle_create_file_command(path, c, user_position, command_bar_active);
+            handle_create_file_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder);
             break;
     }
     *command_bar_active = 0;
@@ -269,7 +283,7 @@ void toggle_hidden_files(int *show_hidden_files)
         *show_hidden_files = 1;
 }
 
-void handle_input(char c, int *user_position, int current_highlighted_file_is_dir, char path[], char full_path[], int *command_bar_active, int *show_hidden_files)
+void handle_input(char c, int *user_position, int current_highlighted_file_is_dir, char path[], char full_path[], int *command_bar_active, int *show_hidden_files, int *accepting_user_input, int *create_new_folder)
 {
     if(!*command_bar_active)
     {
@@ -300,7 +314,7 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
     }
     else
     {
-        handle_command(path, c, user_position, command_bar_active);
+        handle_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder);
     }
 }
 
@@ -338,6 +352,20 @@ void print_commands(int command_bar_active)
             break;
     }
 }
+void handle_user_command_input(char c, int *user_command_position, char *user_command, int *accepting_user_input, int *handle_command)
+{
+       
+    if(c == 10)
+    {
+        *accepting_user_input = 0;
+        *handle_command = 1;
+    } else
+    {
+        user_command[*user_command_position] = c;
+        *user_command_position += 1;
+        user_command[*user_command_position] = '\0';
+    }
+}
 
 int main (void)
 {
@@ -354,18 +382,40 @@ int main (void)
     int command_bar_active = 0;
     int show_hidden_files = 0;
 
+
+
+    int accepting_user_input = 0;
+    char user_command[20];
+    int user_command_position = 0;
+
+    int create_new_folder = 0;
+    int handle_command =  0;
+
     char c;
 
     getcwd(cwd, sizeof(cwd));
-    print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files);
-    while((c = getchar()) != EOF && c != 'q')
+    do
     {
-        handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files);
-        clear();
-        print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files);
-        print_commands(command_bar_active);
+        handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files, &accepting_user_input, &create_new_folder);
+        if (handle_command)
+        {
+            if(create_new_folder)
+            {
+                printf("lets make a new dir!\n");
+                make_dir(cwd, user_command);
+                create_new_folder = 0;
+                handle_command = 0;
+                //wipe user_command
+            }
+        }
+        if(accepting_user_input)
+        {
+            handle_user_command_input(c, &user_command_position, user_command, &accepting_user_input, &handle_command);
+        }
 
-    }
+        print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files, accepting_user_input, user_command);
+        print_commands(command_bar_active);
+    } while((c = getchar()) != EOF && c != 'q');
     clear();
     return 0;
 }
