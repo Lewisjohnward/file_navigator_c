@@ -163,7 +163,7 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
         }
     }
     if(accepting_user_input)
-        printf("%s\n", user_command);
+        printf(": %s\n", user_command);
     
 }
 
@@ -396,7 +396,12 @@ int main (void)
     getcwd(cwd, sizeof(cwd));
     do
     {
-        handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files, &accepting_user_input, &create_new_folder);
+        if(accepting_user_input)
+        {
+            handle_user_command_input(c, &user_command_position, user_command, &accepting_user_input, &handle_command);
+        }else 
+            handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files, &accepting_user_input, &create_new_folder);
+
         if (handle_command)
         {
             if(create_new_folder)
@@ -405,14 +410,10 @@ int main (void)
                 make_dir(cwd, user_command);
                 create_new_folder = 0;
                 handle_command = 0;
-                //wipe user_command
+                user_command_position = 0;
+                user_command[0] = '\0';
             }
         }
-        if(accepting_user_input)
-        {
-            handle_user_command_input(c, &user_command_position, user_command, &accepting_user_input, &handle_command);
-        }
-
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files, accepting_user_input, user_command);
         print_commands(command_bar_active);
     } while((c = getchar()) != EOF && c != 'q');
