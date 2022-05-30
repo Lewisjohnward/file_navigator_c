@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include <ctype.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -9,19 +11,32 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <linux/limits.h>
+#include <stdio.h>
+#include <ftw.h>
+#include <unistd.h>
+
 #define clear() printf("\033[H\033[J")
 
 //hide cursor
 #define hide_cursor() printf("\e[?25l")
 
+struct termios original;
+
 void enable_raw_mode()
 {
-    struct termios raw;
-    tcgetattr(STDIN_FILENO, &raw);
+    tcgetattr(STDIN_FILENO, &original);
+    struct termios raw = original;
     raw.c_iflag &= ~(IXON);
     raw.c_lflag &= ~(ECHO | ICANON | ISIG);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
+
+void disable_raw_mode()
+{
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &original);
+    printf("\033[0m");
+}
+
 char *get_current_highlighted_file(char path[], int *user_position, char highlighted_name[], int *current_highlighted_file_is_dir, int show_hidden_files)
 {
     DIR *d;
@@ -256,20 +271,37 @@ void handle_create_file_command(char *path, char c, int *user_position, int *com
             break;
     }
 }
-//void handle_delete_file_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder)
-//{
-//    switch(c)
-//    {
-//        case 'd':
-//            *create_new_folder = 1;
-//            *accepting_user_input = 1;
-//            break;
-//    }
-//
-//}
 
 
-void handle_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder)
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+    int rv = remove(fpath);
+
+    if (rv)
+        perror(fpath);
+
+    return rv;
+}
+
+int rmrf(char *path)
+{
+    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
+}
+
+void handle_delete_file_command(char *path, char c, int *command_bar_active, int *accepting_user_input, int *create_new_folder, char *full_path)
+{
+    //rmrf(full_path);
+    switch(c)
+    {
+        case 'd':
+            *create_new_folder = 3;
+            break;
+    }
+}
+
+
+
+void handle_command(char *path, char c, int *user_position, int *command_bar_active, int *accepting_user_input, int *create_new_folder, char *full_path)
 {
     switch(*command_bar_active)
     {
@@ -280,7 +312,7 @@ void handle_command(char *path, char c, int *user_position, int *command_bar_act
             handle_create_file_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder);
             break;
         case 3:
-            //handle_delete_file_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder);
+            handle_delete_file_command(path, c, command_bar_active, accepting_user_input, create_new_folder, full_path);
             break;
     }
     *command_bar_active = 0;
@@ -343,7 +375,7 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
     }
     else
     {
-        handle_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder);
+        handle_command(path, c, user_position, command_bar_active, accepting_user_input, create_new_folder, full_path);
     }
 }
 
@@ -376,7 +408,6 @@ void print_delete_file_commands()
     printf("\n");
 }
 
-
 void print_commands(int command_bar_active)
 {
     switch(command_bar_active)
@@ -394,8 +425,12 @@ void print_commands(int command_bar_active)
 }
 void handle_user_command_input(char c, int *user_command_position, char *user_command, int *accepting_user_input, int *handle_command)
 {
-       
-    if(c == 10)
+    if(c == 127)
+    {
+        *user_command_position -= 1;
+        user_command[*user_command_position] = '\0';
+    }
+    else if(c == 10)
     {
         *accepting_user_input = 0;
         *handle_command = 1;
@@ -457,9 +492,16 @@ int main (void)
             create_new_folder = 0;
             handle_command = 0;
         }
+        if(create_new_folder == 3)
+        {
+            rmrf(full_path);
+            create_new_folder = 0;
+        }
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files, accepting_user_input, user_command);
         print_commands(command_bar_active);
     } while((c = getchar()) != EOF && c != 'q');
     clear();
+
+    disable_raw_mode();
     return 0;
 }
