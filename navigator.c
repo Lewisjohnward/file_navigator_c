@@ -391,12 +391,44 @@ void toggle_hidden_files(int *show_hidden_files)
         *show_hidden_files = 1;
 }
 
-void toggle_select_file(void)
+void toggle_select_file(char *highlighted_files[], int *highlighted_files_count, const char *highlighted_name_full_path)
 {
-    printf("hello\n");
+    char temp_highlighted_files[10];
+    int i = 0;
+
+    char *str_ptr = (char *) malloc(strlen(highlighted_name_full_path) + 1);
+    strcpy(str_ptr, highlighted_name_full_path);
+    highlighted_files[*highlighted_files_count] = str_ptr;
+    *highlighted_files_count += 1;
 }
 
-void handle_input(char c, int *user_position, int current_highlighted_file_is_dir, char path[], char full_path[], int *command_bar_active, int *show_hidden_files, int *accepting_user_input, int *create_new_folder)
+void print_selected_files(char *highlighted_files[], int *highlighted_files_count, const char *highlighted_name_full_path)
+{
+    int i = 0;
+    printf("\n");
+    printf("\t\tSelected files\n");
+    printf("\t\t-----------------\n");
+    
+    printf("\t\t highlighted name: %s\n", highlighted_name_full_path);
+    printf("\t\t highlighted file count: %d\n", *highlighted_files_count);
+
+    for(; i < *highlighted_files_count; i++)
+        printf("\t\t%s\n", highlighted_files[i]);
+}
+
+void handle_input(
+        char c, 
+        char *highlighted_files[], 
+        int *highlighted_files_count, 
+        const char *highlighted_name_full_path,
+        int *user_position, 
+        int current_highlighted_file_is_dir, 
+        char path[], 
+        char full_path[], 
+        int *command_bar_active, 
+        int *show_hidden_files, 
+        int *accepting_user_input, 
+        int *create_new_folder)
 {
     if(!*command_bar_active)
     {
@@ -425,7 +457,7 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
         if(c == 8)
             toggle_hidden_files(show_hidden_files);
         if(c == 32)
-            toggle_select_file();
+            toggle_select_file(highlighted_files, highlighted_files_count, highlighted_name_full_path);
     }
     else
     {
@@ -520,6 +552,9 @@ int main (void)
     int create_new_folder = 0;
     int handle_command =  0;
 
+    char *highlighted_files[10];
+    int highlighted_files_count = 0;
+
     char c;
 
     getcwd(cwd, sizeof(cwd));
@@ -529,7 +564,7 @@ int main (void)
         {
             handle_user_command_input(c, &user_command_position, user_command, &accepting_user_input, &handle_command);
         }else 
-            handle_input(c, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files, &accepting_user_input, &create_new_folder);
+            handle_input(c,highlighted_files, &highlighted_files_count, full_path, &user_position, current_highlighted_file_is_dir, cwd, full_path, &command_bar_active, &show_hidden_files, &accepting_user_input, &create_new_folder);
 
         if (handle_command)
         {
@@ -553,6 +588,7 @@ int main (void)
         }
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files, accepting_user_input, user_command);
         print_commands(command_bar_active);
+        print_selected_files(highlighted_files, &highlighted_files_count, full_path);
     } while((c = getchar()) != EOF && c != 'q');
     clear();
 
