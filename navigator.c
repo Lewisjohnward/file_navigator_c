@@ -137,9 +137,9 @@ void print_current_dir(
     int file_count = 0;
     clear();
     center_vertically(5);
-    printf("\t----------------\n");
-    printf("\t%s\n", path);
-    printf("\t----------------\n");
+    printf("\t\t----------------\n");
+    printf("\t\t%s\n", path);
+    printf("\t\t----------------\n");
     d = opendir(path);
     if (d == NULL)
     {
@@ -204,9 +204,9 @@ void print_current_dir(
                         //count_children_files(path, dir->d_name, &file_count);
                         if(dir->d_name[0] == '.' && show_hidden_files)
                         {
-                            printf("\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
+                            printf("\t\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
                         } else if(dir ->d_name[0] != '.')
-                            printf("\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
+                            printf("\t\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
                             
 
                     }
@@ -214,9 +214,9 @@ void print_current_dir(
                     {
                         if(dir->d_name[0] == '.' && show_hidden_files)
                         {
-                            printf("\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
+                            printf("\t\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
                         } else if(dir ->d_name[0] != '.')
-                            printf("\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
+                            printf("\t\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
                     }
                         printf("\033[0m");
                     file_count = 0;
@@ -429,29 +429,29 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
 void print_jump_commands()
 {
     center_vertically(2);
-    printf("\tg -> go to top");
+    printf("\t\tg -> go to top");
     printf("\n");
-    printf("\tG -> go to bottom");
+    printf("\t\tG -> go to bottom");
     printf("\n");
-    printf("\th -> go to home dir");
+    printf("\t\th -> go to home dir");
     printf("\n");
-    printf("\t/ -> go to root");
+    printf("\t\t/ -> go to root");
     printf("\n");
 }
 
 void print_create_file_commands()
 {
     center_vertically(2);
-    printf("\td -> Create new dir");
+    printf("\t\td -> Create new dir");
     printf("\n");
-    printf("\tf -> Create new file");
+    printf("\t\tf -> Create new file");
     printf("\n");
 }
 
 void print_delete_file_commands()
 {
     center_vertically(2);
-    printf("\td -> delete file");
+    printf("\t\td -> delete file");
     printf("\n");
 }
 
