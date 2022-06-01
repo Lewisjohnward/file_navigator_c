@@ -49,15 +49,33 @@ char *get_current_highlighted_file(char path[], int *user_position, char highlig
         {
             if((strcmp(dir->d_name, "..")))
             {
-                i++;
+                if(dir->d_name[0] == '.' && show_hidden_files)
+                    i++;
+                else if (dir->d_name[0] != '.')
+                    i++;
+
                 if(i == *user_position)
                 {
                     if(dir->d_type == 4)
-                        *current_highlighted_file_is_dir = 1;
+                    {
+                        if(dir->d_name[0] == '.' && show_hidden_files)
+                            *current_highlighted_file_is_dir = 1;
+                        else if (dir->d_name[0] != '.')
+                            *current_highlighted_file_is_dir = 1;
+                    }
                     else
-                        *current_highlighted_file_is_dir = 0;
+                    {
+                        if(dir->d_name[0] == '.' && show_hidden_files)
+                            *current_highlighted_file_is_dir = 0;
+                        else if (dir->d_name[0] != '.')
+                            *current_highlighted_file_is_dir = 0;
+                    }
 
-                    strcpy(highlighted_name, dir->d_name);
+                    if(dir->d_name[0] == '.' && show_hidden_files)
+                        strcpy(highlighted_name, dir->d_name);
+                    else if (dir->d_name[0] != '.')
+                        strcpy(highlighted_name, dir->d_name);
+
                 }
             }
         }
@@ -98,7 +116,18 @@ void count_children_files(char path[], char folder_name[], int *file_count)
     }
 }
 
-void print_current_dir(char path[], int *user_position, char full_path[], char highlighted_name[], int *current_highlighted_file_is_dir, int *min_visible_files, int range_visible, int show_hidden_files, int accepting_user_input, char *user_command)
+void print_current_dir(
+        char path[], 
+        int *user_position, 
+        char full_path[], 
+        char highlighted_name[], 
+        int *current_highlighted_file_is_dir, 
+        int *min_visible_files, 
+        int range_visible, 
+        int show_hidden_files, 
+        int accepting_user_input, 
+        char *user_command
+        )
 {
     DIR *d;
     struct dirent *dir;
@@ -107,7 +136,7 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
     int user_position_lower_bound = 1;
     int file_count = 0;
     clear();
-    center_vertically(2);
+    center_vertically(5);
     printf("\t----------------\n");
     printf("\t%s\n", path);
     printf("\t----------------\n");
@@ -122,7 +151,11 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
         {
             if((strcmp(dir->d_name, "..")))
             {
-                user_position_upper_bound++;
+                    if(dir->d_name[0] == '.' && show_hidden_files)
+                    {
+                        user_position_upper_bound++;
+                    } else if(dir ->d_name[0] != '.')
+                        user_position_upper_bound++;
             }
         }
     }
@@ -141,7 +174,11 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
         {
             if((strcmp(dir->d_name, "..")))
             {
-                i++;
+                    if(dir->d_name[0] == '.' && show_hidden_files)
+                    {
+                        i++;
+                    } else if(dir ->d_name[0] != '.')
+                        i++;
 
                 if(i <= range_visible)
                 {
@@ -163,13 +200,23 @@ void print_current_dir(char path[], int *user_position, char full_path[], char h
 
                     if(dir->d_type == 4)
                     {
-                        //count_children_files(path, dir->d_name, &file_count);
                         printf("\033[44;44m");
-                        printf("\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
+                        //count_children_files(path, dir->d_name, &file_count);
+                        if(dir->d_name[0] == '.' && show_hidden_files)
+                        {
+                            printf("\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
+                        } else if(dir ->d_name[0] != '.')
+                            printf("\t%-2d %s %-*s %d\n", i, ":", 45, dir->d_name, file_count);
+                            
+
                     }
                     else 
                     {
-                        printf("\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
+                        if(dir->d_name[0] == '.' && show_hidden_files)
+                        {
+                            printf("\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
+                        } else if(dir ->d_name[0] != '.')
+                            printf("\t%-2d %s %-*s\n", i, ":", 45, dir->d_name);
                     }
                         printf("\033[0m");
                     file_count = 0;
@@ -455,8 +502,8 @@ int main (void)
     int min_visible_files = 0;
     int range_visible = 45;
     int command_bar_active = 0;
-    int show_hidden_files = 0;
 
+    int show_hidden_files = 0;
 
 
     int accepting_user_input = 0;
@@ -499,6 +546,15 @@ int main (void)
         }
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files, accepting_user_input, user_command);
         print_commands(command_bar_active);
+
+        printf("\t%-2s\n", "------------------------");
+        if(!show_hidden_files)
+            printf("\t%-2s", "hidden files are hidden\n");
+        else    
+            printf("\t%-2s", "hidden files are visible\n");
+        printf("highlighted name: %s\n", highlighted_name);
+        printf("current folder is dir: %d\n", current_highlighted_file_is_dir);
+        printf("\t%-2s\n", "------------------------");
     } while((c = getchar()) != EOF && c != 'q');
     clear();
 
