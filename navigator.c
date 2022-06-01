@@ -429,29 +429,29 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
 void print_jump_commands()
 {
     center_vertically(2);
-    printf("g -> go to top");
+    printf("\tg -> go to top");
     printf("\n");
-    printf("G -> go to bottom");
+    printf("\tG -> go to bottom");
     printf("\n");
-    printf("h -> go to home dir");
+    printf("\th -> go to home dir");
     printf("\n");
-    printf("/ -> go to root");
+    printf("\t/ -> go to root");
     printf("\n");
 }
 
 void print_create_file_commands()
 {
     center_vertically(2);
-    printf("d -> Create new dir");
+    printf("\td -> Create new dir");
     printf("\n");
-    printf("f -> Create new file");
+    printf("\tf -> Create new file");
     printf("\n");
 }
 
 void print_delete_file_commands()
 {
     center_vertically(2);
-    printf("d -> delete file");
+    printf("\td -> delete file");
     printf("\n");
 }
 
@@ -546,15 +546,6 @@ int main (void)
         }
         print_current_dir(cwd, &user_position, full_path, highlighted_name, &current_highlighted_file_is_dir, &min_visible_files, range_visible, show_hidden_files, accepting_user_input, user_command);
         print_commands(command_bar_active);
-
-        printf("\t%-2s\n", "------------------------");
-        if(!show_hidden_files)
-            printf("\t%-2s", "hidden files are hidden\n");
-        else    
-            printf("\t%-2s", "hidden files are visible\n");
-        printf("highlighted name: %s\n", highlighted_name);
-        printf("current folder is dir: %d\n", current_highlighted_file_is_dir);
-        printf("\t%-2s\n", "------------------------");
     } while((c = getchar()) != EOF && c != 'q');
     clear();
 
