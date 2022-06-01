@@ -391,6 +391,11 @@ void toggle_hidden_files(int *show_hidden_files)
         *show_hidden_files = 1;
 }
 
+void toggle_select_file(void)
+{
+    printf("hello\n");
+}
+
 void handle_input(char c, int *user_position, int current_highlighted_file_is_dir, char path[], char full_path[], int *command_bar_active, int *show_hidden_files, int *accepting_user_input, int *create_new_folder)
 {
     if(!*command_bar_active)
@@ -419,6 +424,8 @@ void handle_input(char c, int *user_position, int current_highlighted_file_is_di
         }
         if(c == 8)
             toggle_hidden_files(show_hidden_files);
+        if(c == 32)
+            toggle_select_file();
     }
     else
     {
