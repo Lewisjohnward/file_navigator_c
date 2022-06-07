@@ -1,5 +1,6 @@
 #define _XOPEN_SOURCE 500
 
+#include <sys/wait.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -378,6 +379,9 @@ void toggle_command_bar(int *command_bar_active, char c)
         case 'd':
             *command_bar_active = 3;
             break;
+        case '?':
+            *command_bar_active = 4;
+            break;
         default:
             *command_bar_active = 0;
     }
@@ -394,12 +398,23 @@ void toggle_hidden_files(int *show_hidden_files)
 void toggle_select_file(char *highlighted_files[], int *highlighted_files_count, const char *highlighted_name_full_path)
 {
     char temp_highlighted_files[10];
+    int count = *highlighted_files_count;
     int i = 0;
+    int entry_removed = 1;
+    for(i = 0; i < count; i++)
+        if(strcmp(highlighted_files[i], highlighted_name_full_path) == 0)
+        {
+            *highlighted_files_count -= 1;
+            entry_removed = 0;
+        }
 
-    char *str_ptr = (char *) malloc(strlen(highlighted_name_full_path) + 1);
-    strcpy(str_ptr, highlighted_name_full_path);
-    highlighted_files[*highlighted_files_count] = str_ptr;
-    *highlighted_files_count += 1;
+    if(entry_removed)
+    {
+        char *str_ptr = (char *) malloc(strlen(highlighted_name_full_path) + 1);
+        strcpy(str_ptr, highlighted_name_full_path);
+        highlighted_files[*highlighted_files_count] = str_ptr;
+        *highlighted_files_count += 1;
+    }
 }
 
 void print_selected_files(char *highlighted_files[], int *highlighted_files_count, const char *highlighted_name_full_path)
@@ -415,6 +430,27 @@ void print_selected_files(char *highlighted_files[], int *highlighted_files_coun
     for(; i < *highlighted_files_count; i++)
         printf("\t\t%s\n", highlighted_files[i]);
 }
+
+void handle_open_file(char *highlighted_files[], int *highlighted_files_count, const char *highlighted_name_full_path)
+{
+    pid_t pid;
+    int w = 0;
+    pid = fork();
+    if (pid < 0)
+        exit(EXIT_FAILURE);
+    if (pid > 0)
+    {
+        wait(&w);
+        printf("hello\n");
+    }
+    if (pid == 0)
+    {
+        char *args[] = {"vim", highlighted_files[0], NULL};
+        execvp(args[0], args);
+    }
+    
+}
+
 
 void handle_input(
         char c, 
@@ -450,14 +486,19 @@ void handle_input(
         {
             *user_position -= 1;
         }
-        if(c == 'g' || c == 'c' || c == 'd' )
+        if(c == 'g' || c == 'c' || c == 'd' || c == '?')
         {
             toggle_command_bar(command_bar_active, c);
         }
+        //ctrl -h
         if(c == 8)
             toggle_hidden_files(show_hidden_files);
+        //space
         if(c == 32)
             toggle_select_file(highlighted_files, highlighted_files_count, highlighted_name_full_path);
+        //enter
+        if(c == 10)
+            handle_open_file(highlighted_files, highlighted_files_count, highlighted_name_full_path);
     }
     else
     {
@@ -467,7 +508,6 @@ void handle_input(
 
 void print_jump_commands()
 {
-    center_vertically(2);
     printf("\t\tg -> go to top");
     printf("\n");
     printf("\t\tG -> go to bottom");
@@ -480,7 +520,6 @@ void print_jump_commands()
 
 void print_create_file_commands()
 {
-    center_vertically(2);
     printf("\t\td -> Create new dir");
     printf("\n");
     printf("\t\tf -> Create new file");
@@ -489,13 +528,19 @@ void print_create_file_commands()
 
 void print_delete_file_commands()
 {
-    center_vertically(2);
     printf("\t\td -> delete file");
     printf("\n");
+}
+void print_help_commands()
+{
+    printf("\t\td -> help commands");
+    printf("\n");
+
 }
 
 void print_commands(int command_bar_active)
 {
+    center_vertically(2);
     switch(command_bar_active)
     {
         case 1:
@@ -506,6 +551,9 @@ void print_commands(int command_bar_active)
             break;
         case 3:
             print_delete_file_commands();
+            break;
+        case 4:
+            print_help_commands();
             break;
     }
 }
